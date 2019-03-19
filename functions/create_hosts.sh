@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export FUNCTIONS_DIR=$(cd $PIPELINE_DIR/functions && pwd)
+
 function create_controller_hosts {
   echo "[controllers]" > ctrl_vms
   # outer paren converts string to an array
@@ -184,12 +186,15 @@ EOF
 
   create_edge_hosts
   create_controller_hosts
+  python ${FUNCTIONS_DIR}/create_tenant_resources.py
 
   cat ctrl_vms >> hosts
   echo "" >> hosts
   cat edge_vms >> hosts
+  echo "" >> hosts
+  cat tenant_edges >> hosts
 
-  rm ctrl_vms edge_vms
+  rm ctrl_vms edge_vms tenant_edges
 
   if [[ $esx_ips_int != ""  &&  $esx_ips_int != "null" ]]; then
     create_esx_hosts

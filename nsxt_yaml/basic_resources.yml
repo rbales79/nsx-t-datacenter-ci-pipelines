@@ -208,7 +208,7 @@
         username: "{{hostvars['localhost'].nsx_manager_username}}"
         password: "{{hostvars['localhost'].nsx_manager_password}}"
         validate_certs: False
-        resource_type: "HostNode"
+        resource_type: HostNode
         display_name: "{{hostvars[item].fabric_node_name}}"
         ip_addresses: "{{hostvars[item].ip}}"
         os_type: "ESXI"
@@ -294,22 +294,27 @@
         - hostvars['localhost'].unified_appliance == true
 
 ###############################################################################
-# Tier 0 Router
+# Tier 0 Routers
 ###############################################################################
-    - name: NSX-T T0 Logical Router
+    - name: NSX-T T0 Logical Routers
       nsxt_logical_routers:
         hostname: "{{hostvars['localhost'].nsx_manager_ip}}"
         username: "{{hostvars['localhost'].nsx_manager_username}}"
         password: "{{hostvars['localhost'].nsx_manager_password}}"
         validate_certs: False
         resource_type: LogicalRouter
-        description: "NSX-T T0 Logical Router"
-        display_name: "{{hostvars['localhost'].tier0_router_name}}"
-        edge_cluster_name: "{{ edge_cluster_name }}"
+        description: "{{hostvars[item].description}}"
+        display_name: "{{hostvars[item].tier0_router_name}}"
+        edge_cluster_name: "{{hostvars[item].edge_cluster_name}}"
         router_type: TIER0
         high_availability_mode: ACTIVE_STANDBY
         state: present
-      register: t0
+      with_items:
+        - "{{groups['t0_routers']}}"
+      # Per Ansible documentation, After using register with a loop, the data structure placed in the variable
+      # will contain a results attribute that is a list of all responses from the module.
+      # https://docs.ansible.com/ansible/2.4/playbooks_loops.html
+      register: t0_lrs
 
     - name: Add static routes
       nsxt_logical_router_static_routes:
@@ -365,6 +370,7 @@
         linked_logical_switch_port_id:
           target_type: LogicalPort
           target_id: "{{vlan_lsp.id}}"
+        # Subnet field is not required
         subnets:
         - ip_addresses:
           - "{{hostvars['localhost'].tier0_uplink_port_ip}}"
